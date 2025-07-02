@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title> Sticker Translator</title>
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 95%;
+      margin: 0 auto;
+      padding: 15px;
+      background-color: #f5f5f5;
+    }
+    h1 {
+      color: #2c3e50;
+      text-align: center;
+      font-size: 1.5em;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .translator-box {
+      background-color: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      resize: vertical;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    .result {
+      margin-top: 10px;
+      padding: 10px;
+      background-color: #f9f9f9;
+      border-radius: 4px;
+      word-wrap: break-word;
+      white-space: normal;
+      font-size: 16px;
+      min-height: 120px;
+      line-height: 1.5;
+    }
+    .info {
+      font-size: 0.9em;
+      color: #666;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1> Sticker Translator (👍😂)</h1>
+
+  <div class="container">
+    <div class="translator-box">
+      <h2>Text to Stickers</h2>
+      <textarea id="normalInput" placeholder="Enter normal text here..."></textarea>
+      <button onclick="translateToStickers()">Convert to Stickers</button>
+      <div class="result" id="stickerResult"></div>
+    </div>
+
+    <div class="translator-box">
+      <h2>Stickers to Text (Automatic translation)</h2>
+      <textarea id="stickerInput" placeholder="Enter combinations of 👍😂 here..." oninput="queueTranslation()"></textarea>
+      <div class="info">Translation happens automatically as you type</div>
+      <div class="result" id="normalResult"></div>
+    </div>
+  </div>
+
+  <script>
+    const charToBinary = {};
+    const binaryToChar = {};
+
+    function addToDictionary(char) {
+      const code = char.charCodeAt(0);
+      const binary = code.toString(2).padStart(16, '0');
+      charToBinary[char] = binary;
+      binaryToChar[binary] = char;
+    }
+
+    // A-Z
+    for (let i = 65; i <= 90; i++) addToDictionary(String.fromCharCode(i));
+    // a-z
+    for (let i = 97; i <= 122; i++) addToDictionary(String.fromCharCode(i));
+    // 0-9
+    for (let i = 48; i <= 57; i++) addToDictionary(String.fromCharCode(i));
+
+    const specialChars = ' *-+?¡!¿#&"=|°()/\\@,.;:{}[]<>^~`\'\n\t';
+    for (const char of specialChars) addToDictionary(char);
+
+    function translateToStickers() {
+      const input = document.getElementById('normalInput').value;
+      let output = [];
+
+      for (const char of input) {
+        if (charToBinary[char]) {
+          const stickerChar = charToBinary[char].replace(/0/g, '👍').replace(/1/g, '😂');
+          output.push(stickerChar);
+        } else {
+          output.push('');
+        }
+      }
+
+      // 👇 Cambiado a innerText
+      document.getElementById('stickerResult').innerText = output.join(' ');
+    }
+
+
+    function translateStickersToText() {
+      const rawInput = document.getElementById('stickerInput').value;
+      const cleanText = rawInput.replace(/[^👍😂]/g, '');
+      const binaryStr = cleanText.replace(/👍/g, '0').replace(/😂/g, '1');
+
+      let output = '';
+      let position = 0;
+
+      while (position + 16 <= binaryStr.length) {
+        const chunk = binaryStr.substr(position, 16);
+        output += binaryToChar[chunk] || '';
+        position += 16;
+      }
+
+      const resultDiv = document.getElementById('normalResult');
+      // 👇 Cambiado a innerText
+      resultDiv.innerText = output;
+
+      const remaining = binaryStr.length - position;
+      if (remaining > 0) {
+        // 👇 Cambiado a innerHTML para mostrar <br>
+        resultDiv.innerHTML += `<br><small style="color:#888;">[Note: ${remaining} bits left (need ${16 - remaining})]</small>`;
+      }
+      forceRepaint(resultDiv);
+    }
+    // Debounce para evitar lag en móviles
+    let timeoutId;
+    function queueTranslation() {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        translateStickersToText();
+      }, 150); // Retraso reducido para respuesta rápida
+    }
+    function forceRepaint(element) {
+      const display = element.style.display;
+      element.style.display = 'none';
+      void element.offsetHeight; // trigger reflow
+      element.style.display = display;
+    }
+
+    window.onload = function () {
+      // Inicializar si es necesario
+      // Prueba simple para ver si se muestra texto dinámico
+      document.getElementById('normalResult').innerText = "Prueba en iOS OK";
+    };
+    
+  </script>
+</body>
+</html>
